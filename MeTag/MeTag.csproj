@@ -94,6 +94,12 @@
     <Compile Include="Scripts\Core\SEO\ImageAnalyzer.cs" />
     <Compile Include="Scripts\Core\SEO\LinkAnalyzer.cs" />
     <Compile Include="Scripts\Core\SEO\PageSpeedAnalyzer.cs" />
+    <Compile Include="Scripts\Core\Storage\InstrumentedStorage.cs" />
+    <Compile Include="Scripts\Core\Storage\IStorage.cs" />
+    <Compile Include="Scripts\Core\Storage\JsonFileStorage.cs" />
+    <Compile Include="Scripts\Core\Storage\Manager.cs" />
+    <Compile Include="Scripts\Core\Storage\SqlStorage.cs" />
+    <Compile Include="Scripts\Core\Storage\ValidatingManager.cs" />
     <Compile Include="Scripts\Core\Tags\Classes.cs" />
     <Compile Include="Scripts\Core\SEO\MetaTagAnalyzer.cs" />
     <Compile Include="Scripts\Core\WebAgent.cs" />

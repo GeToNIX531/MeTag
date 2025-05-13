@@ -16,6 +16,9 @@ namespace MeTag
         private readonly MetaTagAnalyzer _metaAnalyzer;
         private readonly MetaTagView _metaTagView;
 
+        private JsonFileStorage storage;
+        private Manager<AnalysisResult> manager;
+
         private DataGridView metaDataGrid;
 
 
@@ -28,6 +31,10 @@ namespace MeTag
             _webAgent = new WebAgent();
             _metaAnalyzer = new MetaTagAnalyzer();
             _metaTagView = new MetaTagView(metaDataGrid);
+
+            storage = new JsonFileStorage();
+            manager = new Manager<AnalysisResult>(storage);
+            manager.InitializeAsync();
         }
 
         // Добавляем новые элементы
@@ -146,23 +153,26 @@ namespace MeTag
             _metaTagView.UpdateView(metaResult.MetaTags);
             UpdateHeadingsView(headings);
             UpdateLinksView(links);
+            UpdateImagesStats(images);
 
             CreateMetricsPanel(new Metric("Производительность", $"{speedResult.PerformanceScore:F1}", ""),
                                new Metric("Первая отрисовка", $"{speedResult.FirstContentfulPaint:F0} мс", ""),
                                 new Metric("Позиция в поисковике", $"{position}", "Если -1, то не входит в топ-100"));
 
-            /*
+
             // Сохранение истории
-            new HistoryManager().SaveToHistory(new AnalysisResult
+            await manager.AddEntryAsync(new AnalysisResult
             {
                 Url = url,
+                Time = DateTime.Now,
                 MetaTags = metaResult.MetaTags,
                 Headings = headings,
                 Images = images,
                 Links = links,
                 Speed = speedResult
             });
-            */
+
+            
 
             UpdateStatusBar(metaResult.CriticalIssues);
             /*
@@ -201,6 +211,97 @@ namespace MeTag
                     heading.Length
                 );
             }
+        }
+
+        private void UpdateImagesStats(ImageAnalysisResult result)
+        {
+             TabPage imagesTab;
+         DataGridView imagesGrid;
+         Label lblTotalImages;
+         Label lblMissingAlt;
+         Label lblResponsive;
+
+            // Создаем вкладку для изображений
+            imagesTab = new TabPage("Изображения");
+
+            // Создаем таблицу
+            imagesGrid = new DataGridView
+            {
+                Dock = DockStyle.Top,
+                Height = 300,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                ScrollBars = ScrollBars.Vertical,
+                AllowUserToAddRows = false
+            };
+
+            // Добавляем колонки
+            imagesGrid.Columns.AddRange(
+                new DataGridViewTextBoxColumn { HeaderText = "Источник", Name = "Src", Width = 200 },
+                new DataGridViewTextBoxColumn { HeaderText = "Alt-текст", Name = "Alt" },
+                new DataGridViewTextBoxColumn { HeaderText = "Размеры", Name = "Dimensions", Width = 100 },
+                new DataGridViewTextBoxColumn { HeaderText = "Адаптивность", Name = "Responsive", Width = 100 }
+            );
+
+            // Панель для статистики
+            var statsPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10) };
+
+            lblTotalImages = new Label
+            {
+                Text = "Всего изображений: 0",
+                Dock = DockStyle.Top,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+
+            lblMissingAlt = new Label
+            {
+                Text = "Без alt-текста: 0",
+                Dock = DockStyle.Top,
+                ForeColor = Color.Red,
+                Font = new Font("Segoe UI", 9)
+            };
+
+            lblResponsive = new Label
+            {
+                Text = "Адаптивные: 0",
+                Dock = DockStyle.Top,
+                ForeColor = Color.Green,
+                Font = new Font("Segoe UI", 9)
+            };
+
+            statsPanel.Controls.Add(lblResponsive);
+            statsPanel.Controls.Add(lblMissingAlt);
+            statsPanel.Controls.Add(lblTotalImages);
+
+            // Добавляем элементы на вкладку
+            imagesTab.Controls.Add(statsPanel);
+            imagesTab.Controls.Add(imagesGrid);
+
+            // Добавляем вкладку в TabControl
+            contentTabs.TabPages.Add(imagesTab);
+
+            // Заполняем таблицу
+            foreach (var image in result.Images)
+            {
+                var rowIndex = imagesGrid.Rows.Add(
+                    image.Src,
+                    string.IsNullOrEmpty(image.Alt) ? "❌ Отсутствует" : image.Alt,
+                    image.Width > 0 && image.Height > 0 ? $"{image.Width}x{image.Height}" : "⚠️ Не указаны",
+                    image.HasSrcset ? "✅ Да" : "❌ Нет"
+                );
+
+                // Подсветка строк
+                var row = imagesGrid.Rows[rowIndex];
+                if (string.IsNullOrEmpty(image.Alt))
+                    row.DefaultCellStyle.BackColor = Color.FromArgb(255, 230, 230);
+                else if (!image.HasSrcset)
+                    row.DefaultCellStyle.BackColor = Color.FromArgb(255, 255, 200);
+            }
+
+
+            // Обновляем статистику
+            lblTotalImages.Text = $"Всего изображений: {result.TotalImages}";
+            lblMissingAlt.Text = $"Без alt-текста: {result.ImagesWithoutAlt}";
+            lblResponsive.Text = $"Адаптивные: {result.ResponsiveImages}";
         }
 
         private void UpdateLinksView(LinkAnalysisResult result)

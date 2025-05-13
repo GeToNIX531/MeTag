@@ -25,7 +25,8 @@ public class ImageAnalyzer
             TotalImages = images.Count,
             ImagesWithoutAlt = images.Count(i => string.IsNullOrEmpty(i.Alt)),
             ImagesWithoutDimensions = images.Count(i => i.Width == 0 || i.Height == 0),
-            ResponsiveImages = images.Count(i => i.HasSrcset)
+            ResponsiveImages = images.Count(i => i.HasSrcset),
+            Images = images.ToArray()
         };
     }
 
@@ -50,4 +51,6 @@ public class ImageAnalysisResult
     public int ImagesWithoutAlt { get; set; }     // Без alt-текста
     public int ImagesWithoutDimensions { get; set; } // Без размеров
     public int ResponsiveImages { get; set; }     // Адаптивные изображения
+
+    public ImageInfo[] Images { get; set; }
 }
